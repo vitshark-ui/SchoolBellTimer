@@ -1,0 +1,12 @@
+## Сборка и временные файлы Visual Studio
+bin/
+obj/
+*.suo
+*.user
+*.userprefs
+.vs/
+
+## Служебные файлы ОС
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/

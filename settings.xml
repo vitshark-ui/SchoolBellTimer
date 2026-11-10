@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<AppSettings xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Theme>LightOffice</Theme>
+  <BgMode>SolidColor</BgMode>
+  <CustomBgColorArgb>-131587</CustomBgColorArgb>
+  <BackgroundImagePath />
+  <BackgroundImageLayout>Stretch</BackgroundImageLayout>
+  <IsFullScreen>false</IsFullScreen>
+  <HideToolBar>true</HideToolBar>
+  <Lessons>
+    <LessonItem>
+      <Number>1</Number>
+      <Name>1 урок</Name>
+      <StartTime>08:30</StartTime>
+      <EndTime>09:10</EndTime>
+    </LessonItem>
+    <LessonItem>
+      <Number>2</Number>
+      <Name>2 урок</Name>
+      <StartTime>09:25</StartTime>
+      <EndTime>10:05</EndTime>
+    </LessonItem>
+    <LessonItem>
+      <Number>3</Number>
+      <Name>3 урок</Name>
+      <StartTime>10:15</StartTime>
+      <EndTime>10:55</EndTime>
+    </LessonItem>
+    <LessonItem>
+      <Number>4</Number>
+      <Name>4 урок</Name>
+      <StartTime>15:25</StartTime>
+      <EndTime>16:25</EndTime>
+    </LessonItem>
+  </Lessons>
+</AppSettings>
