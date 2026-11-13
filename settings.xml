@@ -1,12 +1,14 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <AppSettings xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <Theme>LightOffice</Theme>
-  <BgMode>SolidColor</BgMode>
+  <BgMode>DefaultTheme</BgMode>
   <CustomBgColorArgb>-131587</CustomBgColorArgb>
   <BackgroundImagePath />
   <BackgroundImageLayout>Stretch</BackgroundImageLayout>
   <IsFullScreen>false</IsFullScreen>
-  <HideToolBar>true</HideToolBar>
+  <HideToolBar>false</HideToolBar>
+  <ShowScheduleList>true</ShowScheduleList>
+  <AlwaysOnTop>true</AlwaysOnTop>
   <Lessons>
     <LessonItem>
       <Number>1</Number>
@@ -22,15 +24,57 @@
     </LessonItem>
     <LessonItem>
       <Number>3</Number>
-      <Name>3 урок</Name>
-      <StartTime>10:15</StartTime>
-      <EndTime>10:55</EndTime>
+      <Name>Reading time</Name>
+      <StartTime>10:05</StartTime>
+      <EndTime>10:20</EndTime>
     </LessonItem>
     <LessonItem>
       <Number>4</Number>
+      <Name>3 урок</Name>
+      <StartTime>10:20</StartTime>
+      <EndTime>11:00</EndTime>
+    </LessonItem>
+    <LessonItem>
+      <Number>5</Number>
       <Name>4 урок</Name>
-      <StartTime>15:25</StartTime>
-      <EndTime>16:25</EndTime>
+      <StartTime>11:05</StartTime>
+      <EndTime>11:45</EndTime>
+    </LessonItem>
+    <LessonItem>
+      <Number>6</Number>
+      <Name>5 урок</Name>
+      <StartTime>12:05</StartTime>
+      <EndTime>12:45</EndTime>
+    </LessonItem>
+    <LessonItem>
+      <Number>7</Number>
+      <Name>6 урок</Name>
+      <StartTime>12:50</StartTime>
+      <EndTime>13:30</EndTime>
+    </LessonItem>
+    <LessonItem>
+      <Number>8</Number>
+      <Name>7 урок</Name>
+      <StartTime>13:50</StartTime>
+      <EndTime>14:30</EndTime>
+    </LessonItem>
+    <LessonItem>
+      <Number>9</Number>
+      <Name>8 урок</Name>
+      <StartTime>14:45</StartTime>
+      <EndTime>15:25</EndTime>
+    </LessonItem>
+    <LessonItem>
+      <Number>10</Number>
+      <Name>9 урок</Name>
+      <StartTime>15:40</StartTime>
+      <EndTime>16:20</EndTime>
+    </LessonItem>
+    <LessonItem>
+      <Number>11</Number>
+      <Name>10 урок</Name>
+      <StartTime>16:25</StartTime>
+      <EndTime>17:05</EndTime>
     </LessonItem>
   </Lessons>
 </AppSettings>

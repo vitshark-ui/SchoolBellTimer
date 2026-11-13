@@ -1,6 +1,8 @@
 ## Сборка и временные файлы Visual Studio
 bin/
 obj/
+Backup/
+UpgradeLog*
 *.suo
 *.user
 *.userprefs

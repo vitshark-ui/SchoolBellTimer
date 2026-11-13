@@ -11,10 +11,12 @@
 - **Идеальная центровка и читаемость издалека:** Крупные моноширинные цифровые шрифты, контрастные стильные бейджи и автоматическое центрирование карточки часов при любых разрешениях экрана (от нетбуков до 4K-панелей).
 - **Плавная смена секунд без мерцания:** Полноценная аппаратная двойная буферизация (`DoubleBuffered = true` и `OptimizedDoubleBuffer`) устраняет любое дрожание интерфейса при ежесекундном обновлении.
 - **Встроенный редактор расписания:** Удобное диалоговое окно для добавления, изменения, сортировки и удаления уроков с автоматической проверкой корректности времени.
+- **Интерактивный список уроков на экране (справа):** Стильная боковая карточка со всеми уроками дня. Текущий урок подсвечивается в реальном времени бейджем `● ИДЕТ` и акцентной полосой, во время перемены подсвечивается следующий урок, а прошедшие уроки отмечаются галочкой `✓`. Панель легко включается/отключается по клавише `F9` или через меню.
 - **2 встроенные дизайнерские темы:**
   - *Офисная темная:* Темно-графитовый фон, неоновые бирюзовые и мятно-зеленые электронные индикаторы.
   - *Офисная светлая:* Стильный светло-серый фон, строгие темно-синие и графитовые ЖК-индикаторы.
 - **Кастомизация фона:** Возможность установить однотонный цвет через цветовую палитру или выбрать любое изображение (`.jpg`, `.png`, `.bmp`) в качестве фонового рисунка.
+- **Принудительный режим «Поверх всех окон» (Always on Top):** Программа запускается поверх абсолютно всех окон и блокирует перекрытие сторонними приложениями, системными уведомлениями или мессенджерами. Окно непрерывно удерживает приоритет Z-Order (с возможностью переключения по клавише `F10`).
 - **Режим информационного табло:** Полноэкранный режим (`F11`) и скрытие панели управления позволяют оставить на экране монитора или телевизора только чистые часы.
 
 ---
@@ -44,7 +46,7 @@
 2. Выполните команду компиляции:
 
 ```cmd
-C:\Windows\Microsoft.NET\Framework\v3.5\csc.exe /target:winexe /out:SchoolBellTimer.exe /warn:4 Program.cs AppSettings.cs MainForm.cs ScheduleForm.cs /reference:System.dll,System.Drawing.dll,System.Windows.Forms.dll,System.Xml.dll,System.Core.dll
+C:\Windows\Microsoft.NET\Framework\v3.5\csc.exe /target:winexe /out:SchoolBellTimer.exe /warn:4 /optimize+ Program.cs AppSettings.cs MainForm.cs ScheduleForm.cs Properties\AssemblyInfo.cs /reference:System.dll,System.Drawing.dll,System.Windows.Forms.dll,System.Xml.dll,System.Core.dll
 ```
 
 3. В этой же папке мгновенно появится готовый автономный исполняемый файл `SchoolBellTimer.exe`.
@@ -53,7 +55,7 @@ C:\Windows\Microsoft.NET\Framework\v3.5\csc.exe /target:winexe /out:SchoolBellTi
 > ```bat
 > @echo off
 > echo Сборка SchoolBellTimer под .NET Framework 3.5...
-> C:\Windows\Microsoft.NET\Framework\v3.5\csc.exe /target:winexe /out:SchoolBellTimer.exe Program.cs AppSettings.cs MainForm.cs ScheduleForm.cs /reference:System.dll,System.Drawing.dll,System.Windows.Forms.dll,System.Xml.dll,System.Core.dll
+> C:\Windows\Microsoft.NET\Framework\v3.5\csc.exe /target:winexe /out:SchoolBellTimer.exe /optimize+ Program.cs AppSettings.cs MainForm.cs ScheduleForm.cs Properties\AssemblyInfo.cs /reference:System.dll,System.Drawing.dll,System.Windows.Forms.dll,System.Xml.dll,System.Core.dll
 > if %ERRORLEVEL% EQU 0 (
 >     echo [УСПЕХ] Файл SchoolBellTimer.exe успешно создан!
 > ) else (

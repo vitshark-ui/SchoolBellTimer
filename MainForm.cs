@@ -29,9 +29,256 @@ namespace SchoolBellTimer
     }
 
     /// <summary>
+    /// Состояние отдельной строки урока в боковом списке расписания.
+    /// </summary>
+    public enum LessonRowState
+    {
+        /// <summary>
+        /// Предстоящий урок (еще не начался).
+        /// </summary>
+        Upcoming = 0,
+
+        /// <summary>
+        /// Текущий активный урок (идет в данный момент).
+        /// </summary>
+        Active = 1,
+
+        /// <summary>
+        /// Следующий урок (во время текущей перемены).
+        /// </summary>
+        NextBreak = 2,
+
+        /// <summary>
+        /// Завершенный урок (время окончания уже прошло).
+        /// </summary>
+        Past = 3
+    }
+
+    /// <summary>
+    /// Виджет отдельной карточки урока в боковом списке расписания с аппаратной двойной буферизацией.
+    /// </summary>
+    public class LessonRowControl : DoubleBufferedPanel
+    {
+        private LessonItem lesson;
+        private LessonRowState state;
+        private ThemePalette palette;
+
+        /// <summary>
+        /// Данные урока, привязанные к данной строке.
+        /// </summary>
+        public LessonItem Lesson
+        {
+            get { return lesson; }
+        }
+
+        /// <summary>
+        /// Текущее визуальное состояние строки (активен, завершен, перемена, предстоит).
+        /// </summary>
+        public LessonRowState State
+        {
+            get { return state; }
+            set
+            {
+                if (state != value)
+                {
+                    state = value;
+                    this.Invalidate();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Цветовая палитра оформления строки.
+        /// </summary>
+        public ThemePalette Palette
+        {
+            get { return palette; }
+            set
+            {
+                palette = value;
+                this.Invalidate();
+            }
+        }
+
+        /// <summary>
+        /// Конструктор строки урока.
+        /// </summary>
+        /// <param name="item">Модель урока.</param>
+        /// <param name="currentPalette">Текущая палитра оформления.</param>
+        public LessonRowControl(LessonItem item, ThemePalette currentPalette)
+        {
+            this.lesson = item;
+            this.palette = currentPalette;
+            this.state = LessonRowState.Upcoming;
+            this.Height = 52;
+            this.Cursor = Cursors.Hand;
+        }
+
+        /// <summary>
+        /// Отрисовка стилизованной строки урока в зависимости от темы и текущего статуса.
+        /// </summary>
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            Graphics g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+
+            int w = this.Width;
+            int h = this.Height;
+
+            // Выбор цветов в зависимости от состояния
+            Color bgColor;
+            Color borderColor;
+            Color textColor;
+            Color timeColor;
+            Color numberBg;
+            Color numberText;
+
+            if (state == LessonRowState.Active)
+            {
+                bgColor = palette.ScheduleActiveItemBackground;
+                borderColor = palette.ScheduleActiveItemBorder;
+                textColor = palette.ScheduleActiveItemText;
+                timeColor = palette.ScheduleActiveItemAccent;
+                numberBg = palette.ScheduleActiveItemAccent;
+                numberText = Color.FromArgb(15, 23, 42); // Контрастный текст внутри активного бейджа
+            }
+            else if (state == LessonRowState.NextBreak)
+            {
+                // Мягкое выделение следующего урока во время перемены
+                bgColor = (palette.CardBackground.R < 100)
+                    ? Color.FromArgb(22, 38, 52)
+                    : Color.FromArgb(240, 246, 255);
+                borderColor = palette.ScheduleActiveItemBorder;
+                textColor = palette.ScheduleItemText;
+                timeColor = palette.ScheduleItemTime;
+                numberBg = palette.ScheduleNumberBadgeBackground;
+                numberText = palette.ScheduleNumberBadgeText;
+            }
+            else if (state == LessonRowState.Past)
+            {
+                // Завершенный урок отображается приглушенным тоном
+                bgColor = palette.ScheduleItemBackground;
+                borderColor = palette.ScheduleItemBorder;
+                textColor = palette.ScheduleItemPastText;
+                timeColor = palette.ScheduleItemPastText;
+                numberBg = palette.ScheduleNumberBadgeBackground;
+                numberText = palette.ScheduleItemPastText;
+            }
+            else
+            {
+                // Обычный предстоящий урок
+                bgColor = palette.ScheduleItemBackground;
+                borderColor = palette.ScheduleItemBorder;
+                textColor = palette.ScheduleItemText;
+                timeColor = palette.ScheduleItemTime;
+                numberBg = palette.ScheduleNumberBadgeBackground;
+                numberText = palette.ScheduleNumberBadgeText;
+            }
+
+            // Фоновый прямоугольник карточки урока
+            Rectangle rowRect = new Rectangle(0, 0, w - 1, h - 1);
+            using (SolidBrush bgBrush = new SolidBrush(bgColor))
+            {
+                g.FillRectangle(bgBrush, rowRect);
+            }
+            using (Pen borderPen = new Pen(borderColor, (state == LessonRowState.Active) ? 1.5f : 1.0f))
+            {
+                g.DrawRectangle(borderPen, rowRect);
+            }
+
+            // Левая акцентная полоска для текущего урока
+            if (state == LessonRowState.Active)
+            {
+                using (SolidBrush accentBrush = new SolidBrush(palette.ScheduleActiveItemAccent))
+                {
+                    g.FillRectangle(accentBrush, 0, 0, 4, h);
+                }
+            }
+
+            // Круглый бейдж с номером урока
+            Rectangle badgeRect = new Rectangle(12, 10, 30, 30);
+            using (SolidBrush badgeBrush = new SolidBrush(numberBg))
+            {
+                g.FillEllipse(badgeBrush, badgeRect);
+            }
+            using (Font numFont = new Font("Segoe UI", 9.5F, FontStyle.Bold))
+            using (SolidBrush numBrush = new SolidBrush(numberText))
+            using (StringFormat sf = new StringFormat())
+            {
+                sf.Alignment = StringAlignment.Center;
+                sf.LineAlignment = StringAlignment.Center;
+                g.DrawString(lesson.Number.ToString(), numFont, numBrush, badgeRect, sf);
+            }
+
+            // Название урока
+            using (Font titleFont = new Font("Segoe UI", 9.75F, FontStyle.Bold))
+            using (SolidBrush titleBrush = new SolidBrush(textColor))
+            {
+                g.DrawString(lesson.Name, titleFont, titleBrush, 50, 8);
+            }
+
+            // Время урока (ЧЧ:ММ – ЧЧ:ММ)
+            string timeStr = string.Format("{0} – {1}", lesson.StartTime, lesson.EndTime);
+            using (Font timeFont = new Font("Consolas", 9.0F, FontStyle.Regular))
+            using (SolidBrush timeBrush = new SolidBrush(timeColor))
+            {
+                g.DrawString(timeStr, timeFont, timeBrush, 50, 28);
+            }
+
+            // Статусный маркер в правой части строки
+            if (state == LessonRowState.Active)
+            {
+                int badgeW = 68;
+                int badgeH = 22;
+                Rectangle statusRect = new Rectangle(w - badgeW - 10, (h - badgeH) / 2, badgeW, badgeH);
+
+                using (SolidBrush stBrush = new SolidBrush(palette.ScheduleActiveItemAccent))
+                {
+                    g.FillRectangle(stBrush, statusRect);
+                }
+                using (Font stFont = new Font("Segoe UI", 7.5F, FontStyle.Bold))
+                using (SolidBrush stTextBrush = new SolidBrush(Color.FromArgb(15, 23, 42)))
+                using (StringFormat sf = new StringFormat())
+                {
+                    sf.Alignment = StringAlignment.Center;
+                    sf.LineAlignment = StringAlignment.Center;
+                    g.DrawString("● ИДЕТ", stFont, stTextBrush, statusRect, sf);
+                }
+            }
+            else if (state == LessonRowState.NextBreak)
+            {
+                int badgeW = 86;
+                int badgeH = 20;
+                Rectangle statusRect = new Rectangle(w - badgeW - 10, (h - badgeH) / 2, badgeW, badgeH);
+
+                using (Pen stPen = new Pen(palette.ScheduleActiveItemBorder, 1f))
+                {
+                    g.DrawRectangle(stPen, statusRect);
+                }
+                using (Font stFont = new Font("Segoe UI", 7.2F, FontStyle.Bold))
+                using (SolidBrush stTextBrush = new SolidBrush(palette.ScheduleItemTime))
+                using (StringFormat sf = new StringFormat())
+                {
+                    sf.Alignment = StringAlignment.Center;
+                    sf.LineAlignment = StringAlignment.Center;
+                    g.DrawString("СЛЕДУЮЩИЙ", stFont, stTextBrush, statusRect, sf);
+                }
+            }
+            else if (state == LessonRowState.Past)
+            {
+                using (Font checkFont = new Font("Segoe UI", 10F, FontStyle.Bold))
+                using (SolidBrush checkBrush = new SolidBrush(palette.ScheduleItemPastText))
+                {
+                    g.DrawString("✓", checkFont, checkBrush, w - 26, (h - 22) / 2);
+                }
+            }
+        }
+    }
+
+    /// <summary>
     /// Главное окно приложения SchoolBellTimer.
     /// Содержит центральные электронные часы, таймер обратного отсчета до звонка,
-    /// панель управления, переключение тем и полноэкранный режим.
+    /// красивую боковую панель расписания уроков, панель управления, переключение тем и полный экран.
     /// </summary>
     public class MainForm : Form
     {
@@ -40,6 +287,8 @@ namespace SchoolBellTimer
         // -------------------------------------------------------------
         private MenuStrip menuStripMain;
         private ToolStripMenuItem menuSchedule;
+        private ToolStripMenuItem menuScheduleEdit;
+        private ToolStripMenuItem menuScheduleListToggle;
         private ToolStripMenuItem menuTheme;
         private ToolStripMenuItem menuThemeDark;
         private ToolStripMenuItem menuThemeLight;
@@ -47,17 +296,20 @@ namespace SchoolBellTimer
         private ToolStripMenuItem menuBgColor;
         private ToolStripMenuItem menuBgImage;
         private ToolStripMenuItem menuBgReset;
+        private ToolStripMenuItem menuAlwaysOnTop;
         private ToolStripMenuItem menuFullScreen;
         private ToolStripMenuItem menuToggleMenu;
 
         private ContextMenuStrip contextMenuQuick;
         private ToolStripMenuItem ctxSchedule;
+        private ToolStripMenuItem ctxScheduleListToggle;
+        private ToolStripMenuItem ctxAlwaysOnTop;
         private ToolStripMenuItem ctxThemeToggle;
         private ToolStripMenuItem ctxFullScreen;
         private ToolStripMenuItem ctxToggleMenu;
         private ToolStripMenuItem ctxExit;
 
-        // Центральная карточка-виджет часов
+        // Центральная карточка-виджет электронных часов
         private DoubleBufferedPanel panelCard;
         private Label lblDate;
         private Label lblCurrentTime;
@@ -67,7 +319,16 @@ namespace SchoolBellTimer
         private DoubleBufferedPanel panelProgressBar;
         private Label lblProgressPercent;
 
-        // Системный таймер обновления времени (интервал 500 мс для мгновенной реакции)
+        // Боковая карточка-виджет списка расписания (справа)
+        private DoubleBufferedPanel panelScheduleCard;
+        private Panel panelScheduleHeader;
+        private Label lblScheduleTitle;
+        private Label lblScheduleSubtitle;
+        private Button btnScheduleHeaderEdit;
+        private DoubleBufferedPanel panelScheduleScroll;
+        private List<LessonRowControl> lessonRowControls;
+
+        // Системный таймер обновления времени (интервал 500 мс)
         private Timer timerTick;
 
         // Настройки приложения и текущее состояние
@@ -75,7 +336,7 @@ namespace SchoolBellTimer
         private ThemePalette currentPalette;
         private Image loadedBackgroundImage = null;
 
-        // Сохранение состояния окна перед разворачиванием на весь экран
+        // Сохранение состояния окна перед переходом в полный экран
         private bool isFullScreenActive = false;
         private FormWindowState previousWindowState = FormWindowState.Normal;
         private FormBorderStyle previousBorderStyle = FormBorderStyle.Sizable;
@@ -88,7 +349,7 @@ namespace SchoolBellTimer
         /// </summary>
         public MainForm()
         {
-            // Включение двойной буферизации на уровне формы против мерцания
+            // Включение двойной буферизации на уровне формы
             this.DoubleBuffered = true;
             this.SetStyle(
                 ControlStyles.AllPaintingInWmPaint |
@@ -98,21 +359,29 @@ namespace SchoolBellTimer
                 true);
             this.UpdateStyles();
 
-            // Загрузка настроек из settings.xml (или создание демо-расписания)
+            this.lessonRowControls = new List<LessonRowControl>();
+
+            // Загрузка настроек из settings.xml
             this.settings = AppSettings.Load(AppSettings.GetConfigFilePath());
             this.currentPalette = this.settings.GetCurrentPalette();
 
             // Создание и конфигурация контролов формы
             InitializeComponents();
 
-            // Загрузка сохраненного фонового изображения, если задано
+            // Загрузка фонового изображения
             LoadCustomBackgroundImage();
 
-            // Применение темы и фона
+            // Построение элементов бокового списка уроков
+            BuildScheduleListItems();
+
+            // Применение цветовой схемы и фона
             ApplyThemeAndBackground();
 
-            // Первичный расчет и отображение времени до первого тика таймера
+            // Первичный расчет расписания
             UpdateClockAndSchedule();
+
+            // Применение режима «Поверх всех окон» при запуске программы (стандартное свойство WinForms)
+            this.TopMost = settings.AlwaysOnTop;
 
             // Запуск таймера
             timerTick.Start();
@@ -124,8 +393,8 @@ namespace SchoolBellTimer
         private void InitializeComponents()
         {
             this.Text = "SchoolBellTimer — Электронные офисные часы и расписание уроков";
-            this.Size = new Size(1000, 700);
-            this.MinimumSize = new Size(640, 480);
+            this.Size = new Size(1160, 720);
+            this.MinimumSize = new Size(720, 500);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.KeyPreview = true;
 
@@ -137,8 +406,12 @@ namespace SchoolBellTimer
             menuStripMain.Font = new Font("Segoe UI", 9.5F);
 
             // Меню: Расписание
-            menuSchedule = new ToolStripMenuItem("📋 Расписание уроков");
-            menuSchedule.Click += new EventHandler(MenuSchedule_Click);
+            menuSchedule = new ToolStripMenuItem("📋 Расписание");
+            menuScheduleEdit = new ToolStripMenuItem("⚙️ Редактировать расписание...", null, new EventHandler(MenuSchedule_Click));
+            menuScheduleListToggle = new ToolStripMenuItem("📑 Отображать список уроков на экране (F9)", null, new EventHandler(MenuScheduleListToggle_Click));
+            menuScheduleListToggle.CheckOnClick = true;
+            menuScheduleListToggle.Checked = settings.ShowScheduleList;
+            menuSchedule.DropDownItems.AddRange(new ToolStripItem[] { menuScheduleEdit, menuScheduleListToggle });
 
             // Меню: Тема оформления
             menuTheme = new ToolStripMenuItem("🎨 Тема часов");
@@ -153,6 +426,13 @@ namespace SchoolBellTimer
             menuBgReset = new ToolStripMenuItem("🔄 Сбросить фон (по умолчанию)", null, new EventHandler(MenuBgReset_Click));
             menuBackground.DropDownItems.AddRange(new ToolStripItem[] { menuBgColor, menuBgImage, new ToolStripSeparator(), menuBgReset });
 
+            // Меню: Поверх всех окон (F10)
+            menuAlwaysOnTop = new ToolStripMenuItem("📌 Поверх всех окон (F10)");
+            menuAlwaysOnTop.CheckOnClick = true;
+            menuAlwaysOnTop.Checked = settings.AlwaysOnTop;
+            menuAlwaysOnTop.ToolTipText = "Принудительно удерживать часы поверх всех других окон и всплывающих окон системы.";
+            menuAlwaysOnTop.Click += new EventHandler(MenuAlwaysOnTop_Click);
+
             // Меню: Полный экран (F11)
             menuFullScreen = new ToolStripMenuItem("⛶ Полный экран (F11)");
             menuFullScreen.Click += new EventHandler(MenuFullScreen_Click);
@@ -166,6 +446,7 @@ namespace SchoolBellTimer
                 menuSchedule,
                 menuTheme,
                 menuBackground,
+                menuAlwaysOnTop,
                 menuFullScreen,
                 menuToggleMenu
             });
@@ -175,6 +456,9 @@ namespace SchoolBellTimer
             // ==========================================
             contextMenuQuick = new ContextMenuStrip();
             ctxSchedule = new ToolStripMenuItem("📋 Настроить расписание...", null, new EventHandler(MenuSchedule_Click));
+            ctxScheduleListToggle = new ToolStripMenuItem("📑 Показать / скрыть список уроков (F9)", null, new EventHandler(MenuScheduleListToggle_Click));
+            ctxAlwaysOnTop = new ToolStripMenuItem("📌 Поверх всех окон (F10)", null, new EventHandler(MenuAlwaysOnTop_Click));
+            ctxAlwaysOnTop.Checked = settings.AlwaysOnTop;
             ctxThemeToggle = new ToolStripMenuItem("🎨 Переключить тему (Светлая / Темная)", null, new EventHandler(CtxThemeToggle_Click));
             ctxFullScreen = new ToolStripMenuItem("⛶ Во весь экран (F11)", null, new EventHandler(MenuFullScreen_Click));
             ctxToggleMenu = new ToolStripMenuItem("👁️ Показать / скрыть верхнее меню", null, new EventHandler(MenuToggleMenu_Click));
@@ -182,6 +466,9 @@ namespace SchoolBellTimer
 
             contextMenuQuick.Items.AddRange(new ToolStripItem[] {
                 ctxSchedule,
+                ctxScheduleListToggle,
+                ctxAlwaysOnTop,
+                new ToolStripSeparator(),
                 ctxThemeToggle,
                 new ToolStripSeparator(),
                 ctxFullScreen,
@@ -192,64 +479,63 @@ namespace SchoolBellTimer
             this.ContextMenuStrip = contextMenuQuick;
 
             // ==========================================
-            // Центральная информационная карточка (Panel)
+            // 1. Центральная информационная карточка (Часы)
             // ==========================================
             panelCard = new DoubleBufferedPanel();
-            panelCard.Size = new Size(760, 480);
+            panelCard.Size = new Size(720, 480);
             panelCard.Paint += new PaintEventHandler(PanelCard_Paint);
             panelCard.ContextMenuStrip = contextMenuQuick;
 
-            // 1. Блок: Текущая дата и день недели
+            // Блок: Текущая дата и день недели
             lblDate = new Label();
             lblDate.Font = new Font("Segoe UI", 12F, FontStyle.Regular);
             lblDate.TextAlign = ContentAlignment.MiddleCenter;
-            lblDate.Size = new Size(720, 26);
+            lblDate.Size = new Size(680, 26);
             lblDate.Location = new Point(20, 24);
 
-            // 2. Блок: Текущее системное время (крупно)
+            // Блок: Текущее системное время (крупно)
             lblCurrentTime = new Label();
             lblCurrentTime.Font = new Font("Consolas", 46F, FontStyle.Bold);
             lblCurrentTime.TextAlign = ContentAlignment.MiddleCenter;
-            lblCurrentTime.Size = new Size(720, 72);
+            lblCurrentTime.Size = new Size(680, 72);
             lblCurrentTime.Location = new Point(20, 52);
             lblCurrentTime.ContextMenuStrip = contextMenuQuick;
 
-            // 3. Блок: Текущий статус (Идет 1 урок / Перемена / Уроки окончены)
+            // Блок: Текущий статус
             lblStatusBadge = new Label();
             lblStatusBadge.Font = new Font("Segoe UI", 16F, FontStyle.Bold);
             lblStatusBadge.TextAlign = ContentAlignment.MiddleCenter;
-            lblStatusBadge.Size = new Size(700, 50);
+            lblStatusBadge.Size = new Size(660, 50);
             lblStatusBadge.Location = new Point(30, 138);
 
-            // 4. Блок: Подзаголовок обратного отсчета
+            // Блок: Подзаголовок обратного отсчета
             lblCountdownTitle = new Label();
             lblCountdownTitle.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
             lblCountdownTitle.TextAlign = ContentAlignment.MiddleCenter;
             lblCountdownTitle.Text = "ДО ЗВОНКА ОСТАЛОСЬ";
-            lblCountdownTitle.Size = new Size(720, 24);
+            lblCountdownTitle.Size = new Size(680, 24);
             lblCountdownTitle.Location = new Point(20, 206);
 
-            // 5. Блок: Крупный таймер обратного отсчета (ММ:СС)
+            // Блок: Крупный таймер обратного отсчета (ММ:СС)
             lblCountdown = new Label();
             lblCountdown.Font = new Font("Consolas", 76F, FontStyle.Bold);
             lblCountdown.TextAlign = ContentAlignment.MiddleCenter;
-            lblCountdown.Size = new Size(720, 120);
+            lblCountdown.Size = new Size(680, 120);
             lblCountdown.Location = new Point(20, 230);
             lblCountdown.ContextMenuStrip = contextMenuQuick;
 
-            // 6. Блок: Визуальный индикатор прогресса (прошло времени урока/перемены)
+            // Блок: Визуальный индикатор прогресса
             panelProgressBar = new DoubleBufferedPanel();
-            panelProgressBar.Size = new Size(620, 12);
+            panelProgressBar.Size = new Size(580, 12);
             panelProgressBar.Location = new Point(70, 375);
             panelProgressBar.Paint += new PaintEventHandler(PanelProgressBar_Paint);
 
             lblProgressPercent = new Label();
             lblProgressPercent.Font = new Font("Segoe UI", 9.5F, FontStyle.Regular);
             lblProgressPercent.TextAlign = ContentAlignment.MiddleCenter;
-            lblProgressPercent.Size = new Size(720, 22);
+            lblProgressPercent.Size = new Size(680, 22);
             lblProgressPercent.Location = new Point(20, 395);
 
-            // Сборка элементов в центральную карточку
             panelCard.Controls.Add(lblDate);
             panelCard.Controls.Add(lblCurrentTime);
             panelCard.Controls.Add(lblStatusBadge);
@@ -258,12 +544,64 @@ namespace SchoolBellTimer
             panelCard.Controls.Add(panelProgressBar);
             panelCard.Controls.Add(lblProgressPercent);
 
-            // Добавление компонентов на главную форму
+            // ==========================================
+            // 2. Боковая карточка со списком уроков (Справа)
+            // ==========================================
+            panelScheduleCard = new DoubleBufferedPanel();
+            panelScheduleCard.Size = new Size(360, 480);
+            panelScheduleCard.Paint += new PaintEventHandler(PanelScheduleCard_Paint);
+            panelScheduleCard.ContextMenuStrip = contextMenuQuick;
+
+            // Заголовок панели расписания
+            panelScheduleHeader = new Panel();
+            panelScheduleHeader.Dock = DockStyle.Top;
+            panelScheduleHeader.Height = 60;
+            panelScheduleHeader.BackColor = Color.Transparent;
+            panelScheduleHeader.Padding = new Padding(14, 10, 14, 8);
+
+            lblScheduleTitle = new Label();
+            lblScheduleTitle.Text = "📋 РАСПИСАНИЕ УРОКОВ";
+            lblScheduleTitle.Font = new Font("Segoe UI", 11.5F, FontStyle.Bold);
+            lblScheduleTitle.AutoSize = true;
+            lblScheduleTitle.Location = new Point(12, 10);
+
+            lblScheduleSubtitle = new Label();
+            lblScheduleSubtitle.Text = "Загрузка расписания...";
+            lblScheduleSubtitle.Font = new Font("Segoe UI", 8.5F, FontStyle.Regular);
+            lblScheduleSubtitle.AutoSize = true;
+            lblScheduleSubtitle.Location = new Point(13, 33);
+
+            btnScheduleHeaderEdit = new Button();
+            btnScheduleHeaderEdit.Text = "⚙️ Настроить";
+            btnScheduleHeaderEdit.Size = new Size(95, 28);
+            btnScheduleHeaderEdit.Location = new Point(panelScheduleCard.Width - 110, 14);
+            btnScheduleHeaderEdit.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            btnScheduleHeaderEdit.FlatStyle = FlatStyle.Flat;
+            btnScheduleHeaderEdit.FlatAppearance.BorderSize = 1;
+            btnScheduleHeaderEdit.Font = new Font("Segoe UI", 8.5F, FontStyle.Regular);
+            btnScheduleHeaderEdit.Cursor = Cursors.Hand;
+            btnScheduleHeaderEdit.Click += new EventHandler(MenuSchedule_Click);
+
+            panelScheduleHeader.Controls.Add(lblScheduleTitle);
+            panelScheduleHeader.Controls.Add(lblScheduleSubtitle);
+            panelScheduleHeader.Controls.Add(btnScheduleHeaderEdit);
+
+            // Прокручиваемый контейнер элементов списка уроков
+            panelScheduleScroll = new DoubleBufferedPanel();
+            panelScheduleScroll.Dock = DockStyle.Fill;
+            panelScheduleScroll.AutoScroll = true;
+            panelScheduleScroll.Padding = new Padding(8);
+
+            panelScheduleCard.Controls.Add(panelScheduleScroll);
+            panelScheduleCard.Controls.Add(panelScheduleHeader);
+
+            // Добавление карточек на форму
             this.Controls.Add(panelCard);
+            this.Controls.Add(panelScheduleCard);
             this.Controls.Add(menuStripMain);
 
             // ==========================================
-            // Таймер обновления данных (500 мс)
+            // Системный таймер обновления данных (500 мс)
             // ==========================================
             timerTick = new Timer();
             timerTick.Interval = 500;
@@ -281,7 +619,39 @@ namespace SchoolBellTimer
         }
 
         /// <summary>
-        /// Загружает пользовательское фоновое изображение из файла, если путь сохранен в настройках.
+        /// Построение графических строк уроков внутри боковой панели расписания.
+        /// </summary>
+        private void BuildScheduleListItems()
+        {
+            panelScheduleScroll.SuspendLayout();
+            panelScheduleScroll.Controls.Clear();
+            lessonRowControls.Clear();
+
+            int yOffset = 6;
+            int itemWidth = Math.Max(220, panelScheduleScroll.ClientSize.Width - 16);
+
+            if (settings.Lessons != null)
+            {
+                for (int i = 0; i < settings.Lessons.Count; i++)
+                {
+                    LessonItem item = settings.Lessons[i];
+                    LessonRowControl row = new LessonRowControl(item, currentPalette);
+                    row.Location = new Point(8, yOffset);
+                    row.Size = new Size(itemWidth, 52);
+                    row.DoubleClick += new EventHandler(MenuSchedule_Click);
+
+                    panelScheduleScroll.Controls.Add(row);
+                    lessonRowControls.Add(row);
+
+                    yOffset += 58;
+                }
+            }
+
+            panelScheduleScroll.ResumeLayout();
+        }
+
+        /// <summary>
+        /// Загружает пользовательское фоновое изображение из файла.
         /// </summary>
         private void LoadCustomBackgroundImage()
         {
@@ -297,7 +667,6 @@ namespace SchoolBellTimer
                 {
                     if (File.Exists(settings.BackgroundImagePath))
                     {
-                        // Загружаем в MemoryStream, чтобы не блокировать файл на диске
                         byte[] fileBytes = File.ReadAllBytes(settings.BackgroundImagePath);
                         using (MemoryStream ms = new MemoryStream(fileBytes))
                         {
@@ -307,7 +676,6 @@ namespace SchoolBellTimer
                 }
                 catch (Exception)
                 {
-                    // В случае ошибки чтения возвращаем стандартный фоновый режим
                     settings.BgMode = BackgroundMode.DefaultTheme;
                     loadedBackgroundImage = null;
                 }
@@ -315,13 +683,13 @@ namespace SchoolBellTimer
         }
 
         /// <summary>
-        /// Применяет цветовую палитру темы и настройки фонового рисунка ко всем элементам окна.
+        /// Применяет цветовую палитру темы и настройки фона ко всем элементам окна.
         /// </summary>
         private void ApplyThemeAndBackground()
         {
             this.currentPalette = settings.GetCurrentPalette();
 
-            // Настройка меню
+            // Верхнее меню
             menuStripMain.BackColor = currentPalette.ToolbarBackground;
             menuStripMain.ForeColor = currentPalette.ToolbarForeground;
             foreach (ToolStripItem item in menuStripMain.Items)
@@ -329,11 +697,13 @@ namespace SchoolBellTimer
                 item.ForeColor = currentPalette.ToolbarForeground;
             }
 
-            // Отметки выбранной темы в меню
             menuThemeDark.Checked = (settings.Theme == ClockThemeType.DarkOffice);
             menuThemeLight.Checked = (settings.Theme == ClockThemeType.LightOffice);
+            menuScheduleListToggle.Checked = settings.ShowScheduleList;
+            menuAlwaysOnTop.Checked = settings.AlwaysOnTop;
+            ctxAlwaysOnTop.Checked = settings.AlwaysOnTop;
 
-            // Оформление фона окна
+            // Фон окна
             if (settings.BgMode == BackgroundMode.Image && loadedBackgroundImage != null)
             {
                 this.BackgroundImage = loadedBackgroundImage;
@@ -351,7 +721,7 @@ namespace SchoolBellTimer
                 this.BackColor = currentPalette.WindowBackground;
             }
 
-            // Цвета центральной панели-карточки
+            // Центральная карточка (Часы)
             panelCard.BackColor = currentPalette.CardBackground;
             lblDate.ForeColor = currentPalette.SubtitleText;
             lblCurrentTime.ForeColor = currentPalette.ClockDigits;
@@ -360,9 +730,26 @@ namespace SchoolBellTimer
             lblCountdown.ForeColor = currentPalette.CountdownDigits;
             lblProgressPercent.ForeColor = currentPalette.SubtitleText;
 
-            // Перерисовка компонентов
+            // Боковая карточка (Расписание)
+            panelScheduleCard.BackColor = currentPalette.ScheduleCardBackground;
+            lblScheduleTitle.ForeColor = currentPalette.ClockDigits;
+            lblScheduleSubtitle.ForeColor = currentPalette.SubtitleText;
+
+            btnScheduleHeaderEdit.BackColor = (settings.Theme == ClockThemeType.DarkOffice)
+                ? Color.FromArgb(42, 48, 62)
+                : Color.FromArgb(240, 243, 248);
+            btnScheduleHeaderEdit.ForeColor = currentPalette.ToolbarForeground;
+            btnScheduleHeaderEdit.FlatAppearance.BorderColor = currentPalette.CardBorder;
+
+            // Обновление палитры для всех строк уроков в списке
+            for (int i = 0; i < lessonRowControls.Count; i++)
+            {
+                lessonRowControls[i].Palette = currentPalette;
+            }
+
             panelCard.Invalidate();
             panelProgressBar.Invalidate();
+            panelScheduleCard.Invalidate();
             this.Invalidate();
         }
 
@@ -374,14 +761,12 @@ namespace SchoolBellTimer
             Graphics g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
 
-            // Рисуем мягкую границу карточки
             using (Pen borderPen = new Pen(currentPalette.CardBorder, 2f))
             {
                 Rectangle rect = new Rectangle(1, 1, panelCard.Width - 3, panelCard.Height - 3);
                 g.DrawRectangle(borderPen, rect);
             }
 
-            // Отрисовка декоративного фона для плашки статуса
             Rectangle badgeRect = new Rectangle(lblStatusBadge.Left - 10, lblStatusBadge.Top, lblStatusBadge.Width + 20, lblStatusBadge.Height);
             using (SolidBrush badgeBrush = new SolidBrush(currentPalette.StatusBadgeBackground))
             {
@@ -394,7 +779,28 @@ namespace SchoolBellTimer
         }
 
         /// <summary>
-        /// Отрисовка современного плоского прогресс-бара прошедшего времени урока/перемены.
+        /// Отрисовка рамки боковой карточки расписания и разделительной полосы заголовка.
+        /// </summary>
+        private void PanelScheduleCard_Paint(object sender, PaintEventArgs e)
+        {
+            Graphics g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+
+            using (Pen borderPen = new Pen(currentPalette.ScheduleCardBorder, 2f))
+            {
+                Rectangle rect = new Rectangle(1, 1, panelScheduleCard.Width - 3, panelScheduleCard.Height - 3);
+                g.DrawRectangle(borderPen, rect);
+            }
+
+            // Тонкая линия под шапкой расписания
+            using (Pen sepPen = new Pen(currentPalette.ScheduleCardBorder, 1f))
+            {
+                g.DrawLine(sepPen, 14, panelScheduleHeader.Height, panelScheduleCard.Width - 14, panelScheduleHeader.Height);
+            }
+        }
+
+        /// <summary>
+        /// Отрисовка прогресс-бара прошедшего времени урока/перемены.
         /// </summary>
         private void PanelProgressBar_Paint(object sender, PaintEventArgs e)
         {
@@ -402,13 +808,11 @@ namespace SchoolBellTimer
             int width = panelProgressBar.Width;
             int height = panelProgressBar.Height;
 
-            // Фоновая полоса (незаполненная часть)
             using (SolidBrush bgBrush = new SolidBrush(currentPalette.CardBorder))
             {
                 g.FillRectangle(bgBrush, 0, 0, width, height);
             }
 
-            // Заполненная часть прогресса
             int fillWidth = (int)((width * Math.Max(0, Math.Min(100, currentProgressPercent))) / 100.0);
             if (fillWidth > 0)
             {
@@ -420,7 +824,7 @@ namespace SchoolBellTimer
         }
 
         /// <summary>
-        /// Тик таймера: обновляет текущее время, статус урока и значение обратного отсчета.
+        /// Тик таймера: обновление системного времени, обратного отсчета и подсветки в боковом списке уроков.
         /// </summary>
         private void TimerTick_Tick(object sender, EventArgs e)
         {
@@ -428,35 +832,32 @@ namespace SchoolBellTimer
         }
 
         /// <summary>
-        /// Центральный метод расчета времени, определения текущего урока/перемены и форматирования строк.
+        /// Центральный метод расчета времени, определения текущего урока/перемены и обновления бокового списка.
         /// </summary>
         private void UpdateClockAndSchedule()
         {
             DateTime now = DateTime.Now;
 
-            // 1. Обновление даты (например: "Вторник, 10 ноября 2026 г.")
+            // 1. Дата и системное время
             lblDate.Text = now.ToString("D", System.Globalization.CultureInfo.GetCultureInfo("ru-RU"));
-
-            // 2. Обновление системного времени (ЧЧ:ММ:СС)
             lblCurrentTime.Text = now.ToString("HH:mm:ss");
 
-            // 3. Расчет расписания звонков
+            // 2. Расчет расписания
             TimeSpan currentTimeOfDay = now.TimeOfDay;
             List<LessonItem> lessons = settings.Lessons;
 
-            // Если список уроков пуст
             if (lessons == null || lessons.Count == 0)
             {
                 lblStatusBadge.Text = "Расписание уроков не задано";
                 lblCountdownTitle.Text = "НАСТРОЙКА РАСПИСАНИЯ";
                 lblCountdown.Text = "00:00";
-                lblProgressPercent.Text = "Нажмите «📋 Расписание уроков» в верхнем меню для добавления звонков.";
+                lblProgressPercent.Text = "Нажмите «📋 Расписание» в верхнем меню для добавления звонков.";
+                lblScheduleSubtitle.Text = "Список уроков пуст";
                 currentProgressPercent = 0;
                 panelProgressBar.Invalidate();
                 return;
             }
 
-            // Ищем состояние: идет ли урок, идет ли перемена, уроки еще не начались или уже окончены
             bool isLessonActive = false;
             bool isBreakActive = false;
             LessonItem currentLesson = null;
@@ -465,25 +866,27 @@ namespace SchoolBellTimer
             TimeSpan intervalStart = TimeSpan.Zero;
             TimeSpan intervalEnd = TimeSpan.Zero;
 
-            // Проверяем первый урок (время до начала первого звонка)
+            // Проверка первого урока
             TimeSpan firstStart, firstEnd;
             lessons[0].TryGetTimeSpans(out firstStart, out firstEnd);
 
             if (currentTimeOfDay < firstStart)
             {
-                // До начала первого урока
                 lblStatusBadge.Text = string.Format("До начала занятий (первый урок в {0})", lessons[0].StartTime);
                 lblCountdownTitle.Text = "ДО ПЕРВОГО ЗВОНКА ОСТАЛОСЬ";
                 targetTime = firstStart;
                 TimeSpan diffBefore = targetTime - currentTimeOfDay;
                 lblCountdown.Text = FormatCountdown(diffBefore);
                 lblProgressPercent.Text = string.Format("Первый урок: {0} ({1} – {2})", lessons[0].Name, lessons[0].StartTime, lessons[0].EndTime);
+                lblScheduleSubtitle.Text = string.Format("Всего уроков: {0} | Старт в {1}", lessons.Count, lessons[0].StartTime);
                 currentProgressPercent = 0;
                 panelProgressBar.Invalidate();
+
+                UpdateScheduleListHighlight(null, lessons[0], false, currentTimeOfDay);
                 return;
             }
 
-            // Проверяем текущие уроки и перемены между ними
+            // Поиск активного урока или перемены
             for (int i = 0; i < lessons.Count; i++)
             {
                 TimeSpan start, end;
@@ -492,7 +895,6 @@ namespace SchoolBellTimer
                     continue;
                 }
 
-                // Проверка: идет ли данный урок прямо сейчас
                 if (currentTimeOfDay >= start && currentTimeOfDay < end)
                 {
                     isLessonActive = true;
@@ -503,7 +905,6 @@ namespace SchoolBellTimer
                     break;
                 }
 
-                // Проверка: идет ли перемена перед следующим уроком
                 if (i < lessons.Count - 1)
                 {
                     TimeSpan nextStart, nextEnd;
@@ -525,14 +926,12 @@ namespace SchoolBellTimer
 
             if (isLessonActive && currentLesson != null)
             {
-                // Идет урок
                 lblStatusBadge.Text = string.Format("Идет {0} ({1} – {2})", currentLesson.Name, currentLesson.StartTime, currentLesson.EndTime);
                 lblCountdownTitle.Text = "ДО КОНЦА УРОКА (ДО ЗВОНКА):";
 
                 TimeSpan remaining = targetTime - currentTimeOfDay;
                 lblCountdown.Text = FormatCountdown(remaining);
 
-                // Расчет процента завершения урока
                 double totalSec = (intervalEnd - intervalStart).TotalSeconds;
                 double elapsedSec = (currentTimeOfDay - intervalStart).TotalSeconds;
                 currentProgressPercent = totalSec > 0 ? (int)((elapsedSec / totalSec) * 100) : 0;
@@ -540,43 +939,85 @@ namespace SchoolBellTimer
 
                 lblProgressPercent.Text = string.Format("Прошло {0}% времени урока | Всего длится: {1} мин.",
                     currentProgressPercent, (int)(intervalEnd - intervalStart).TotalMinutes);
+
+                lblScheduleSubtitle.Text = string.Format("Идет {0} из {1} уроков | Звонок в {2}",
+                    currentLesson.Number, lessons.Count, currentLesson.EndTime);
+
+                UpdateScheduleListHighlight(currentLesson, null, false, currentTimeOfDay);
             }
             else if (isBreakActive && nextLesson != null)
             {
-                // Идет перемена
                 lblStatusBadge.Text = string.Format("Перемена перед {0} (до {1})", nextLesson.Name, nextLesson.StartTime);
                 lblCountdownTitle.Text = "ДО НАЧАЛА УРОКА ОСТАЛОСЬ:";
 
                 TimeSpan remaining = targetTime - currentTimeOfDay;
                 lblCountdown.Text = FormatCountdown(remaining);
 
-                // Расчет процента завершения перемены
                 double totalSec = (intervalEnd - intervalStart).TotalSeconds;
                 double elapsedSec = (currentTimeOfDay - intervalStart).TotalSeconds;
                 currentProgressPercent = totalSec > 0 ? (int)((elapsedSec / totalSec) * 100) : 0;
                 currentProgressPercent = Math.Max(0, Math.Min(100, currentProgressPercent));
 
-                lblProgressPercent.Text = string.Format("Прошло {0}% перемены | Длительность перемены: {1} мин.",
+                lblProgressPercent.Text = string.Format("Прошло {0}% перемены | Длительность: {1} мин.",
                     currentProgressPercent, (int)(intervalEnd - intervalStart).TotalMinutes);
+
+                lblScheduleSubtitle.Text = string.Format("Перемена | Следующий: {0} ({1})",
+                    nextLesson.Name, nextLesson.StartTime);
+
+                UpdateScheduleListHighlight(null, nextLesson, true, currentTimeOfDay);
             }
             else
             {
-                // Время после окончания последнего урока дня
                 lblStatusBadge.Text = "Уроки окончены";
                 lblCountdownTitle.Text = "ЗАНЯТИЯ НА СЕГОДНЯ ЗАВЕРШЕНЫ";
                 lblCountdown.Text = "00:00";
                 lblProgressPercent.Text = "Учебный день завершен. Отличного отдыха!";
+                lblScheduleSubtitle.Text = string.Format("Все {0} уроков на сегодня окончены", lessons.Count);
                 currentProgressPercent = 100;
+
+                UpdateScheduleListHighlight(null, null, false, currentTimeOfDay);
             }
 
             panelProgressBar.Invalidate();
         }
 
         /// <summary>
-        /// Форматирует оставшееся время в строковый вид "ММ:СС" (или "ЧЧ:ММ:СС", если осталось более 1 часа).
+        /// Интеллектуальное обновление статусов подсветки в боковом списке уроков.
         /// </summary>
-        /// <param name="span">Отрезок времени.</param>
-        /// <returns>Строка таймера обратного отсчета.</returns>
+        private void UpdateScheduleListHighlight(LessonItem current, LessonItem next, bool isBreak, TimeSpan now)
+        {
+            for (int i = 0; i < lessonRowControls.Count; i++)
+            {
+                LessonRowControl row = lessonRowControls[i];
+                LessonItem item = row.Lesson;
+                TimeSpan start, end;
+                if (!item.TryGetTimeSpans(out start, out end))
+                {
+                    continue;
+                }
+
+                if (current != null && item.Number == current.Number)
+                {
+                    row.State = LessonRowState.Active;
+                }
+                else if (isBreak && next != null && item.Number == next.Number)
+                {
+                    row.State = LessonRowState.NextBreak;
+                }
+                else if (now >= end)
+                {
+                    row.State = LessonRowState.Past;
+                }
+                else
+                {
+                    row.State = LessonRowState.Upcoming;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Форматирование интервала времени в "ММ:СС" или "ЧЧ:ММ:СС".
+        /// </summary>
         private string FormatCountdown(TimeSpan span)
         {
             if (span.Ticks < 0)
@@ -593,7 +1034,7 @@ namespace SchoolBellTimer
         }
 
         /// <summary>
-        /// Центрирование карточки часов при изменении размера окна или развороте на весь экран.
+        /// Обработчик изменения размера окна.
         /// </summary>
         private void MainForm_Resize(object sender, EventArgs e)
         {
@@ -601,60 +1042,86 @@ namespace SchoolBellTimer
         }
 
         /// <summary>
-        /// Математический перерасчет расположения карточки часов строго по центру рабочей области формы.
+        /// Адаптивное центрирование карточки часов и бокового расписания на экране.
         /// </summary>
         private void CenterClockCard()
         {
-            if (panelCard == null) return;
+            if (panelCard == null || panelScheduleCard == null) return;
 
             int menuHeight = (menuStripMain != null && menuStripMain.Visible) ? menuStripMain.Height : 0;
-            int availableWidth = this.ClientSize.Width;
-            int availableHeight = this.ClientSize.Height - menuHeight;
+            int availW = this.ClientSize.Width;
+            int availH = this.ClientSize.Height - menuHeight;
 
-            // Адаптивный размер карточки в зависимости от разрешения экрана
-            int cardWidth = Math.Min(availableWidth - 40, 780);
-            int cardHeight = Math.Min(availableHeight - 40, 480);
+            bool showSideList = settings.ShowScheduleList && (availW >= 780);
+            panelScheduleCard.Visible = showSideList;
 
-            if (cardWidth < 500) cardWidth = Math.Max(320, availableWidth - 10);
-            if (cardHeight < 360) cardHeight = Math.Max(260, availableHeight - 10);
+            if (!showSideList)
+            {
+                // Режим отображения только часов по центру
+                int cardWidth = Math.Min(availW - 40, 780);
+                int cardHeight = Math.Min(availH - 40, 480);
 
-            panelCard.Size = new Size(cardWidth, cardHeight);
+                if (cardWidth < 500) cardWidth = Math.Max(320, availW - 10);
+                if (cardHeight < 360) cardHeight = Math.Max(260, availH - 10);
 
-            // Точное выравнивание по центру
-            int posX = Math.Max(0, (availableWidth - cardWidth) / 2);
-            int posY = menuHeight + Math.Max(0, (availableHeight - cardHeight) / 2);
-            panelCard.Location = new Point(posX, posY);
+                panelCard.Size = new Size(cardWidth, cardHeight);
+                int posX = Math.Max(0, (availW - cardWidth) / 2);
+                int posY = menuHeight + Math.Max(0, (availH - cardHeight) / 2);
+                panelCard.Location = new Point(posX, posY);
+            }
+            else
+            {
+                // Режим совместного отображения: Часы (слева) + Расписание (справа)
+                int gap = 20;
+                int commonHeight = Math.Min(availH - 40, 500);
+                if (commonHeight < 360) commonHeight = Math.Max(280, availH - 20);
 
-            // Адаптивная подгонка внутренних элементов карточки по ширине
+                int maxTotalWidth = Math.Min(availW - 40, 1180);
+                int scheduleWidth = Math.Max(300, Math.Min(380, (int)(maxTotalWidth * 0.35)));
+                int clockWidth = maxTotalWidth - scheduleWidth - gap;
+
+                if (clockWidth < 460)
+                {
+                    clockWidth = Math.Max(360, (int)(maxTotalWidth * 0.58));
+                    scheduleWidth = maxTotalWidth - clockWidth - gap;
+                }
+
+                panelCard.Size = new Size(clockWidth, commonHeight);
+                panelScheduleCard.Size = new Size(scheduleWidth, commonHeight);
+
+                int startX = Math.Max(10, (availW - maxTotalWidth) / 2);
+                int startY = menuHeight + Math.Max(10, (availH - commonHeight) / 2);
+
+                panelCard.Location = new Point(startX, startY);
+                panelScheduleCard.Location = new Point(startX + clockWidth + gap, startY);
+
+                // Корректировка ширины строк внутри панели прокрутки расписания
+                int rowWidth = Math.Max(180, panelScheduleScroll.ClientSize.Width - 16);
+                for (int i = 0; i < lessonRowControls.Count; i++)
+                {
+                    lessonRowControls[i].Width = rowWidth;
+                }
+            }
+
+            // Адаптивная подгонка элементов внутри карточки часов
             int contentWidth = panelCard.Width - 40;
             lblDate.Width = contentWidth;
-            lblDate.Left = 20;
-
             lblCurrentTime.Width = contentWidth;
-            lblCurrentTime.Left = 20;
-
-            lblStatusBadge.Width = Math.Min(contentWidth, 700);
+            lblStatusBadge.Width = Math.Min(contentWidth, 680);
             lblStatusBadge.Left = (panelCard.Width - lblStatusBadge.Width) / 2;
-
             lblCountdownTitle.Width = contentWidth;
-            lblCountdownTitle.Left = 20;
-
             lblCountdown.Width = contentWidth;
-            lblCountdown.Left = 20;
-
-            panelProgressBar.Width = Math.Min(contentWidth - 60, 620);
+            panelProgressBar.Width = Math.Min(contentWidth - 60, 600);
             panelProgressBar.Left = (panelCard.Width - panelProgressBar.Width) / 2;
-
             lblProgressPercent.Width = contentWidth;
-            lblProgressPercent.Left = 20;
         }
 
         // =============================================================
-        // Обработчики команд меню и интерфейса
+        // Команды меню и переключения режимов
         // =============================================================
 
         /// <summary>
-        /// Открытие диалогового окна редактирования расписания.
+        /// Открытие диалогового окна расписания.
         /// </summary>
         private void MenuSchedule_Click(object sender, EventArgs e)
         {
@@ -662,36 +1129,51 @@ namespace SchoolBellTimer
             {
                 if (form.ShowDialog(this) == DialogResult.OK)
                 {
-                    // Расписание было обновлено и сохранено — немедленно пересчитываем состояние
+                    BuildScheduleListItems();
+                    ApplyThemeAndBackground();
+                    CenterClockCard();
                     UpdateClockAndSchedule();
                 }
             }
         }
 
         /// <summary>
-        /// Переключение на офисную темную тему.
+        /// Включение / отключение боковой панели со списком уроков.
+        /// </summary>
+        private void MenuScheduleListToggle_Click(object sender, EventArgs e)
+        {
+            ToggleScheduleListVisibility();
+        }
+
+        /// <summary>
+        /// Логика переключения видимости бокового списка уроков.
+        /// </summary>
+        private void ToggleScheduleListVisibility()
+        {
+            settings.ShowScheduleList = !settings.ShowScheduleList;
+            menuScheduleListToggle.Checked = settings.ShowScheduleList;
+            AppSettings.Save(settings, AppSettings.GetConfigFilePath());
+
+            CenterClockCard();
+            UpdateClockAndSchedule();
+        }
+
+        /// <summary>
+        /// Переключение на темную офисную тему.
         /// </summary>
         private void MenuThemeDark_Click(object sender, EventArgs e)
         {
             settings.Theme = ClockThemeType.DarkOffice;
-            if (settings.BgMode == BackgroundMode.DefaultTheme)
-            {
-                settings.BgMode = BackgroundMode.DefaultTheme;
-            }
             AppSettings.Save(settings, AppSettings.GetConfigFilePath());
             ApplyThemeAndBackground();
         }
 
         /// <summary>
-        /// Переключение на офисную светлую тему.
+        /// Переключение на светлую офисную тему.
         /// </summary>
         private void MenuThemeLight_Click(object sender, EventArgs e)
         {
             settings.Theme = ClockThemeType.LightOffice;
-            if (settings.BgMode == BackgroundMode.DefaultTheme)
-            {
-                settings.BgMode = BackgroundMode.DefaultTheme;
-            }
             AppSettings.Save(settings, AppSettings.GetConfigFilePath());
             ApplyThemeAndBackground();
         }
@@ -712,7 +1194,7 @@ namespace SchoolBellTimer
         }
 
         /// <summary>
-        /// Выбор произвольного однотонного цвета фона через стандартный ColorDialog.
+        /// Выбор цвета фона через стандартный диалог Windows.
         /// </summary>
         private void MenuBgColor_Click(object sender, EventArgs e)
         {
@@ -731,7 +1213,7 @@ namespace SchoolBellTimer
         }
 
         /// <summary>
-        /// Выбор пользовательского фонового изображения (.jpg, .png, .bmp).
+        /// Выбор пользовательского фонового изображения.
         /// </summary>
         private void MenuBgImage_Click(object sender, EventArgs e)
         {
@@ -773,6 +1255,34 @@ namespace SchoolBellTimer
         }
 
         /// <summary>
+        /// Обработчик пункта меню «Поверх всех окон».
+        /// </summary>
+        private void MenuAlwaysOnTop_Click(object sender, EventArgs e)
+        {
+            ToggleAlwaysOnTop();
+        }
+
+        /// <summary>
+        /// Переключение режима удержания окна поверх всех остальных окон.
+        /// Используется безопасное управляемое свойство .NET Windows Forms (TopMost),
+        /// исключающее ложные срабатывания антивирусов.
+        /// </summary>
+        private void ToggleAlwaysOnTop()
+        {
+            settings.AlwaysOnTop = !settings.AlwaysOnTop;
+            menuAlwaysOnTop.Checked = settings.AlwaysOnTop;
+            ctxAlwaysOnTop.Checked = settings.AlwaysOnTop;
+            this.TopMost = settings.AlwaysOnTop;
+
+            if (settings.AlwaysOnTop)
+            {
+                this.BringToFront();
+            }
+
+            AppSettings.Save(settings, AppSettings.GetConfigFilePath());
+        }
+
+        /// <summary>
         /// Переключение полноэкранного режима (F11).
         /// </summary>
         private void MenuFullScreen_Click(object sender, EventArgs e)
@@ -781,7 +1291,7 @@ namespace SchoolBellTimer
         }
 
         /// <summary>
-        /// Переключение видимости верхнего меню для максимально чистого экранного отображения.
+        /// Переключение видимости верхнего меню.
         /// </summary>
         private void MenuToggleMenu_Click(object sender, EventArgs e)
         {
@@ -789,13 +1299,12 @@ namespace SchoolBellTimer
         }
 
         /// <summary>
-        /// Логика разворачивания на полный экран и выхода из него.
+        /// Логика разворачивания во весь экран и возврата в оконный режим.
         /// </summary>
         private void ToggleFullScreen()
         {
             if (!isFullScreenActive)
             {
-                // Запоминаем текущее состояние перед переходом в полный экран
                 previousWindowState = this.WindowState;
                 previousBorderStyle = this.FormBorderStyle;
 
@@ -807,7 +1316,6 @@ namespace SchoolBellTimer
             }
             else
             {
-                // Возврат в оконный режим
                 this.FormBorderStyle = previousBorderStyle;
                 this.WindowState = previousWindowState;
                 isFullScreenActive = false;
@@ -819,7 +1327,7 @@ namespace SchoolBellTimer
         }
 
         /// <summary>
-        /// Переключение видимости верхнего меню.
+        /// Скрытие или отображение панели меню.
         /// </summary>
         private void ToggleMenuVisibility()
         {
@@ -828,22 +1336,31 @@ namespace SchoolBellTimer
             AppSettings.Save(settings, AppSettings.GetConfigFilePath());
 
             CenterClockCard();
-
-            if (!menuStripMain.Visible)
-            {
-                // Напоминание пользователю, как вызвать меню обратно
-                // (не блокирующее, информативное)
-            }
         }
 
         /// <summary>
-        /// Обработка горячих клавиш (F11 — полный экран, Esc — возврат из полного экрана или возврат меню, Alt — меню).
+        /// Обработка горячих клавиш:
+        /// F11 — полный экран,
+        /// F10 — переключение режима «Поверх всех окон»,
+        /// F9 — переключение списка уроков справа,
+        /// Esc — выход из полноэкранного режима или возврат меню,
+        /// Alt+M — переключение верхнего меню.
         /// </summary>
         private void MainForm_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.F11)
             {
                 ToggleFullScreen();
+                e.Handled = true;
+            }
+            else if (e.KeyCode == Keys.F10)
+            {
+                ToggleAlwaysOnTop();
+                e.Handled = true;
+            }
+            else if (e.KeyCode == Keys.F9)
+            {
+                ToggleScheduleListVisibility();
                 e.Handled = true;
             }
             else if (e.KeyCode == Keys.Escape)
@@ -868,9 +1385,8 @@ namespace SchoolBellTimer
         }
 
         /// <summary>
-        /// Освобождение ресурсов при закрытии формы.
+        /// Освобождение системных ресурсов.
         /// </summary>
-        /// <param name="disposing">Указывает, освобождать ли управляемые ресурсы.</param>
         protected override void Dispose(bool disposing)
         {
             if (disposing)

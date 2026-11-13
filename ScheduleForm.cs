@@ -53,6 +53,7 @@ namespace SchoolBellTimer
             this.FormBorderStyle = FormBorderStyle.Sizable;
             this.ShowIcon = false;
             this.ShowInTaskbar = false;
+            this.TopMost = true;
             this.BackColor = Color.FromArgb(248, 249, 251);
 
             // ==========================================

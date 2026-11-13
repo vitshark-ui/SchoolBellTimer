@@ -221,6 +221,71 @@ namespace SchoolBellTimer
         public Color ToolbarForeground { get; set; }
 
         /// <summary>
+        /// Цвет фона карточки списка уроков.
+        /// </summary>
+        public Color ScheduleCardBackground { get; set; }
+
+        /// <summary>
+        /// Цвет рамки карточки списка уроков.
+        /// </summary>
+        public Color ScheduleCardBorder { get; set; }
+
+        /// <summary>
+        /// Цвет фона активного урока в списке.
+        /// </summary>
+        public Color ScheduleActiveItemBackground { get; set; }
+
+        /// <summary>
+        /// Цвет рамки активного урока в списке.
+        /// </summary>
+        public Color ScheduleActiveItemBorder { get; set; }
+
+        /// <summary>
+        /// Цвет левой акцентной полосы активного урока.
+        /// </summary>
+        public Color ScheduleActiveItemAccent { get; set; }
+
+        /// <summary>
+        /// Цвет текста активного урока.
+        /// </summary>
+        public Color ScheduleActiveItemText { get; set; }
+
+        /// <summary>
+        /// Обычный цвет фона строки урока в списке.
+        /// </summary>
+        public Color ScheduleItemBackground { get; set; }
+
+        /// <summary>
+        /// Обычный цвет рамки строки урока в списке.
+        /// </summary>
+        public Color ScheduleItemBorder { get; set; }
+
+        /// <summary>
+        /// Цвет текста обычного урока.
+        /// </summary>
+        public Color ScheduleItemText { get; set; }
+
+        /// <summary>
+        /// Цвет текста завершенного (прошедшего) урока.
+        /// </summary>
+        public Color ScheduleItemPastText { get; set; }
+
+        /// <summary>
+        /// Цвет интервала времени урока (ЧЧ:ММ – ЧЧ:ММ).
+        /// </summary>
+        public Color ScheduleItemTime { get; set; }
+
+        /// <summary>
+        /// Цвет фона плашки с номером урока.
+        /// </summary>
+        public Color ScheduleNumberBadgeBackground { get; set; }
+
+        /// <summary>
+        /// Цвет цифры номера урока.
+        /// </summary>
+        public Color ScheduleNumberBadgeText { get; set; }
+
+        /// <summary>
         /// Фабричный метод получения палитры для темной офисной темы.
         /// </summary>
         /// <returns>Палитра темной темы.</returns>
@@ -237,6 +302,21 @@ namespace SchoolBellTimer
             p.SubtitleText = Color.FromArgb(150, 160, 180);           // Спокойный серый
             p.ToolbarBackground = Color.FromArgb(26, 29, 38);          // Верхняя панель
             p.ToolbarForeground = Color.FromArgb(220, 225, 235);       // Текст меню
+
+            // Цвета панели расписания (темная тема)
+            p.ScheduleCardBackground = Color.FromArgb(30, 34, 44);
+            p.ScheduleCardBorder = Color.FromArgb(50, 56, 72);
+            p.ScheduleActiveItemBackground = Color.FromArgb(18, 46, 62);
+            p.ScheduleActiveItemBorder = Color.FromArgb(0, 212, 255);
+            p.ScheduleActiveItemAccent = Color.FromArgb(0, 230, 153);
+            p.ScheduleActiveItemText = Color.FromArgb(245, 247, 250);
+            p.ScheduleItemBackground = Color.FromArgb(24, 27, 35);
+            p.ScheduleItemBorder = Color.FromArgb(42, 47, 60);
+            p.ScheduleItemText = Color.FromArgb(220, 225, 235);
+            p.ScheduleItemPastText = Color.FromArgb(110, 120, 140);
+            p.ScheduleItemTime = Color.FromArgb(0, 212, 255);
+            p.ScheduleNumberBadgeBackground = Color.FromArgb(40, 46, 58);
+            p.ScheduleNumberBadgeText = Color.FromArgb(200, 210, 230);
             return p;
         }
 
@@ -257,6 +337,21 @@ namespace SchoolBellTimer
             p.SubtitleText = Color.FromArgb(100, 116, 139);           // Сбалансированный серый цвет
             p.ToolbarBackground = Color.FromArgb(248, 249, 251);       // Светлая панель инструментов
             p.ToolbarForeground = Color.FromArgb(40, 50, 70);          // Текст меню
+
+            // Цвета панели расписания (светлая тема)
+            p.ScheduleCardBackground = Color.FromArgb(255, 255, 255);
+            p.ScheduleCardBorder = Color.FromArgb(205, 212, 224);
+            p.ScheduleActiveItemBackground = Color.FromArgb(234, 242, 255);
+            p.ScheduleActiveItemBorder = Color.FromArgb(59, 130, 246);
+            p.ScheduleActiveItemAccent = Color.FromArgb(37, 99, 235);
+            p.ScheduleActiveItemText = Color.FromArgb(15, 23, 42);
+            p.ScheduleItemBackground = Color.FromArgb(248, 250, 252);
+            p.ScheduleItemBorder = Color.FromArgb(226, 232, 240);
+            p.ScheduleItemText = Color.FromArgb(30, 41, 59);
+            p.ScheduleItemPastText = Color.FromArgb(148, 163, 184);
+            p.ScheduleItemTime = Color.FromArgb(20, 80, 190);
+            p.ScheduleNumberBadgeBackground = Color.FromArgb(224, 231, 255);
+            p.ScheduleNumberBadgeText = Color.FromArgb(30, 58, 138);
             return p;
         }
     }
@@ -303,6 +398,17 @@ namespace SchoolBellTimer
         public bool HideToolBar { get; set; }
 
         /// <summary>
+        /// Флаг отображения боковой панели с расписанием уроков на главном экране.
+        /// </summary>
+        public bool ShowScheduleList { get; set; }
+
+        /// <summary>
+        /// Флаг принудительного удержания окна поверх всех остальных окон системы (Always on Top).
+        /// Гарантирует, что часы не будут перекрыты другими окнами или всплывающими уведомлениями.
+        /// </summary>
+        public bool AlwaysOnTop { get; set; }
+
+        /// <summary>
         /// Список уроков школьного расписания.
         /// </summary>
         public List<LessonItem> Lessons { get; set; }
@@ -319,6 +425,8 @@ namespace SchoolBellTimer
             BackgroundImageLayout = ImageLayout.Stretch;
             IsFullScreen = false;
             HideToolBar = false;
+            ShowScheduleList = true;
+            AlwaysOnTop = true;
             Lessons = new List<LessonItem>();
         }
 
